@@ -1,0 +1,58 @@
+# ZCode Scholar — ZCode 原生科研动态工作流集
+
+> 独立于 [claude-scholar](https://github.com/Galaxy-Dawn/claude-scholar)（Claude Code plugin）的 **ZCode 原生科研工作流仓库**。clone 即用：用 ZCode 打开本仓库，对 agent 说「运行 xx 工作流」即可，无需任何安装步骤。
+
+## 工作流清单
+
+| 工作流 | 用途 | 产出 | 耗时（low 档） |
+|--------|------|------|------|
+| `research-survey` | 需求先行的领域入门 | 1 篇定制入门笔记（主文精读 + 多篇引证 + 点单式延伸清单），落盘知识库 | ≈ 10 分钟 |
+| `research-write` | 论文写作 | 完整 IMRAD 初稿（claim-evidence 大纲 → 并行分节起草 → 去 AI 痕迹 → 审稿人复审），落盘 Writing/manuscript/ | ≈ 20-30 分钟 |
+| `research-analyze` | 数据统计分析 | R 脚本 + 图表 + 统计报告（效应量/CI/精确 p），落盘 03_analysis/ | ≈ 10-15 分钟 |
+
+## 用法
+
+```bash
+# 1. clone 本仓库，用 ZCode 打开
+# 2. 对 agent 说（工作流面板也可直接选）：
+运行 research-survey 工作流，主题是「单细胞测序解析肿瘤微环境」
+运行 research-write 工作流，素材是 Results/Reports/ 下的解读报告
+运行 research-analyze 工作流，数据是 data/qpcr.csv，问题是 A/B 两组差异
+```
+
+**参数约定**：每个工作流都有 `context` 类参数——把你所处阶段、关注重点、规划写清楚可直接开工；不写则工作流会先访谈你再动工。
+
+## 快慢模式
+
+子代理推理档跟随会话设置（默认 max，质量优先，约慢 3 倍）。**快模式**：运行时指定子代理用 low 推理档（`subagent_model: <模型>$low`），检索/核验/统计执行不受影响，撰写质量略降。
+
+## 质量防线（所有工作流共用）
+
+- **需求先行**：先弄清你的阶段/重点/规划，再动手——不做方向不明的大锅饭
+- **引用幻觉防线**：入库文献的 DOI/PMID 标识符必须批量核验可解析；写作引证只来自你提供的素材，缺的在文中显式标记 `[待补文献]`
+- **预算硬上限**：每个检索子代理有网络调用次数上限，杜绝失控空转
+- **独立复审**：交付物必经未参与撰写的独立评审（新手/审稿人视角），发现问题才修订
+- **落盘可追溯**：所有产物写入工作区（知识库/分析目录），路径在运行结果中明确给出
+
+## 目录结构
+
+```
+zcode-scholar/
+├── .zcode/
+│   ├── commands/research.md      # /research 五模式命令（调研/设计/分析/解读/写作）
+│   ├── skills/research-assist/   # 命令的路由大脑 + 5 个阶段 playbook
+│   └── workflows/                # 动态工作流（.dwf.ts，随仓库分发）
+├── .claude/rules/mcp-routing.md  # 检索路由（research-survey 运行时依赖）
+├── AGENTS.md                     # ZCode 工作区指令
+└── .zcodeignore                  # ZCode 排除规则（同步自 .gitignore）
+```
+
+## 与 auto-research（Claude Scholar）的关系
+
+- 本仓库**自包含**：三个动态工作流不依赖其他仓库即可运行
+- `/research` 命令的 survey/analyze/write 深度模式会按需加载 `.claude/skills/` 方法后端（组学 SOP、scientific-writing 等）——这些后端在 [auto-research](https://github.com/xiaoyi200328/auto-research) 仓库；需要完整命令体验请配合使用
+- `research-analyze` 的 R 路径默认 `C:/Program Files/R/R-4.5.3/bin/x64/Rscript.exe`（auto-research 的约定），机器上 R 在 PATH 中则自动优先使用 `Rscript`
+
+## License
+
+[MIT](LICENSE)

@@ -1,0 +1,4 @@
+# ZCode 运行时产物（每次会话/运行生成，不入库）
+plans/
+workflow-drafts/
+workflow-runs/

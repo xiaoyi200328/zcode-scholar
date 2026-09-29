@@ -1,0 +1,65 @@
+# === Meta 仓库(auto_research 根):只管工具链 + 全局配置 ===
+# 各课题是独立 git 仓库,meta 不追踪课题内容(防嵌套警告)
+Research/
+
+# 依赖与临时产物
+node_modules/
+Rplots.pdf
+p16_*.txt
+temp/
+
+# 敏感配置(含明文 token,严禁入库) — 同事请复制 .mcp.json.example 为 .mcp.json 后填自己的 key
+.mcp.json
+
+# 个人科研数据/课题(各自独立 git 仓库,不入 meta 仓库)
+programs/
+
+# 第三方 MCP server 源码(README 指引自装,避免入库 22M 别人的代码)
+MCP/
+
+# Obsidian vault 工作区配置(每机不同,不入库)
+.obsidian/
+
+# 其他工具运行时缓存
+.claudian/
+
+# 散落的个人/临时文件
+Maps/
+未命名.base
+feedback_*.md
+temp_report.txt
+temp_vaf_density.png
+
+# 与医学研究无关的独立脚本(GLM Coding Plan 抢购; profile 含登录态)
+rush_buy/
+
+# ===== ↑ 以上同步自 .gitignore（「从 .gitignore 同步」只重写以上部分）=====
+.git/
+.hg/
+.svn/
+bower_components/
+jspm_packages/
+__pycache__/
+site-packages/
+venv/
+coverage/
+htmlcov/
+lcov-report/
+cmakefiles/
+cmake-build-*/
+bazel-*/
+pods/
+deriveddata/
+storybook-static/
+playwright-report/
+test-results/
+allure-results/
+allure-report/
+cdk.out/
+*.egg-info/
+*.dist-info/
+eggs/
+pip-wheel-metadata/
+wheels/
+# ----- ↑ 以上为 ZCode 默认排除规则（自定义规则请写在本行下方，不会被同步/恢复改动）-----
+# 自定义规则写在下方（本行提示可删除）
