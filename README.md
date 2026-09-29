@@ -4,11 +4,15 @@
 
 ## 工作流清单
 
-| 工作流 | 用途 | 产出 | 耗时（low 档） |
+| 工作流 | 借鉴的 CC 管线 | 产出 | 耗时（low 档） |
 |--------|------|------|------|
-| `research-survey` | 需求先行的领域入门 | 1 篇定制入门笔记（主文精读 + 多篇引证 + 点单式延伸清单），落盘知识库 | ≈ 10 分钟 |
-| `research-write` | 论文写作 | 完整 IMRAD 初稿（claim-evidence 大纲 → 并行分节起草 → 去 AI 痕迹 → 审稿人复审），落盘 Writing/manuscript/ | ≈ 20-30 分钟 |
-| `research-analyze` | 数据统计分析 | R 脚本 + 图表 + 统计报告（效应量/CI/精确 p），落盘 03_analysis/ | ≈ 10-15 分钟 |
+| `research-survey` | /research-init（Tier 分类、库存优先） | 1 篇定制入门笔记（主文精读 + 多篇引证 + 点单式延伸清单），落盘知识库 | ≈ 10 分钟 |
+| `research-design` | research-ideation（5W1H）+ scientific-critical-thinking（四维评审） | 实验设计文档（3 方案并行 → 四维加权评审 → 用户选择 → 评审意见响应），落盘 Experiments/ | ≈ 15 分钟 |
+| `research-analyze` | /run-analysis + analysis-execution（CONFIRM 门/生成执行分离/双阶段审查）+ sp-verification | R 脚本 + 图表 + 统计报告（效应量/CI/精确 p），落盘 03_analysis/ | ≈ 12 分钟 |
+| `research-interpret` | results-report（决策对象）+ analysis-reflection（决策矩阵） | 结果解读报告（统计复核 + 机制链 + 文献对照四态 + 决策强制选一），落盘 Results/Reports/ | ≈ 12 分钟 |
+| `research-write` | /writing（两段式+大纲确认门）+ writing-anti-ai（50 分制）+ paper-self-review（三值 verdict） | IMRAD 初稿（claim-evidence 大纲 → 并行分节 → 质量门 → 终审），落盘 Writing/manuscript/ | ≈ 20-30 分钟 |
+
+**借鉴 CC 的质量门一览**：需求访谈先行 / 库存检查 / CONFIRM 用户确认门（大纲、统计方案、方案选择）/ 生成与执行分离（world.run 门控）/ VERIFY 断言 / 双阶段审查（spec→quality）/ anti-AI 50 分制评分 / 引用幻觉防线 / 三值 verdict 终审。
 
 ## 用法
 
@@ -16,11 +20,13 @@
 # 1. clone 本仓库，用 ZCode 打开
 # 2. 对 agent 说（工作流面板也可直接选）：
 运行 research-survey 工作流，主题是「单细胞测序解析肿瘤微环境」
-运行 research-write 工作流，素材是 Results/Reports/ 下的解读报告
+运行 research-design 工作流，验证蛋白X磷酸化影响Y通路
 运行 research-analyze 工作流，数据是 data/qpcr.csv，问题是 A/B 两组差异
+运行 research-interpret 工作流，报告是 03_analysis/.../report.md，假说是…
+运行 research-write 工作流，素材是 Results/Reports/ 下的解读报告
 ```
 
-**参数约定**：每个工作流都有 `context` 类参数——把你所处阶段、关注重点、规划写清楚可直接开工；不写则工作流会先访谈你再动工。
+**参数约定**：每个工作流都有 `context` 类参数——把你所处阶段、关注重点、规划写清楚可直接开工；不写则工作流会先访谈你再动工。在 `context` 中写「自动确认」可跳过中途的确认门（大纲/方案/选择），全自动跑完。
 
 ## 快慢模式
 

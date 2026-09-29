@@ -1,8 +1,6 @@
 /* zcode-workflow
-description: 需求先行的入门笔记工作流：先访谈弄清你的阶段/重点/规划（未提供则追问），再按聚焦点并行检索候选文献（批量核验标识符），撰写 1
-  篇定制入门笔记（多篇引证穿插、不罗列）并落盘到知识库，新手视角复审。目标 10-15 分钟。
-whenToUse: 想进入一个不熟悉的领域、只需要一篇对路的入门笔记时。会先访谈你的阶段/重点/规划（除非 context
-  已说明），再按聚焦点并行检索多篇候选文献，撰写 1 篇精读笔记（引证穿插不罗列）并落盘到知识库，末尾给点单式延伸清单。
+description: 需求先行的入门笔记工作流：先访谈（含库存检查——已有知识可复用则标注）弄清你的阶段/重点/规划，再按聚焦点并行检索候选文献（核验标识符），撰写
+  1 篇定制入门笔记并落盘到知识库，新手视角复审。low 档约 10 分钟。
 args:
   context:
     type: string
@@ -13,8 +11,8 @@ args:
     description: 想入门的领域/主题（中英文均可）
     required: true
 */
-// research-survey v5 — 需求先行的新手入门笔记（快版）：
-// 需求访谈 → 按聚焦点并行检索（每人 ≤3 次网络调用）→ 撰写并直接落盘 → 新手复审（≤2 问题，必要时修订重发布）。
+// research-survey v3.1 — 需求先行的新手入门笔记：
+// 访谈（含库存检查）→ 按聚焦点并行检索（每人 ≤3 次网络调用）→ 撰写并直接落盘 → 新手复审（≤2 问题）。
 // 多篇文献做支撑、只产出 1 篇笔记；延伸方向由用户点单。
 
 interface IntakeBrief {
@@ -28,6 +26,8 @@ interface IntakeBrief {
   plan: string;
   /** 明确不需要覆盖的内容（防止笔记跑偏），没有则为空字符串 */
   exclude: string;
+  /** 工作区已有可复用知识（库存检查命中：课题 Knowledge 与 Papers 目录里的相关笔记），没有则为空字符串 */
+  reused: string;
 }
 
 interface PaperRef {
@@ -80,7 +80,7 @@ if (topic === "") {
 }
 const context = String(args.context ?? "").trim();
 
-// 落盘规则：检测仓库是否为 Obsidian vault（Research/ 下有课题 Knowledge/）
+// 落盘规则：检测仓库是否为 Obsidian vault（Research 下有课题 Knowledge 目录）
 const kbFiles = await files.glob("Research/*/Knowledge/*.md");
 const projects = [...new Set(kbFiles.map((p) => p.split("/")[1]).filter((s) => s !== ""))];
 const saveRule =
@@ -92,16 +92,19 @@ const fileRule = `文件名 Primer-{YYYYMMDD}-{简短slug}.md（日期用今天�
 phase("需求访谈：先弄清你的阶段与重点");
 const intake = agent("需求访谈员", {
   system:
-    "你是研究导师开新课前的第一次面谈：目标是在动手前弄清学生现阶段最需要什么，而不是急着展示学问。" +
-    "若用户背景信息已足够，直接整理成简报；只有当学习目的完全无法判断时才向用户追问，" +
-    "追问一次问全最关键的几点：当前阶段与基础、最想搞清的重点、接下来的规划、不想要什么。",
+    "你是研究导师开新课前的第一次面谈：目标是在动手前弄清学生现阶段最需要什么，而不是急着展示学问。\n" +
+    "第一步先做库存检查：用 Glob/Read 查工作区已有知识（各课题的 Knowledge 与 Papers 目录里与主题相关的笔记），" +
+    "命中的记入简报的 reused 字段——避免重复调研。\n" +
+    "第二步：用户背景信息已足够时直接整理成简报；只有当学习目的完全无法判断时才向用户追问，" +
+    "追问一次问全最关键的几点：当前阶段与基础、最想搞清的重点、接下来的规划、不想要什么。" +
+    "若库存里已有可直接复用的笔记，向用户指出而不是从零开始。",
 });
 const brief = await intake.ask<IntakeBrief>(
   context === ""
-    ? `用户想入门「${topic}」，但没有提供任何背景。请向用户追问弄清：当前阶段与已有基础、这次最想搞清的重点（2-4 个具体问题）、接下来的规划、明确不想要的内容，然后整理成简报。`
-    : `用户想入门「${topic}」，并提供了背景：\n${context}\n\n据此整理成简报；信息足够就不要追问。`,
+    ? `用户想入门「${topic}」，但没有提供任何背景。先做库存检查，然后向用户追问弄清：当前阶段与已有基础、这次最想搞清的重点（2-4 个具体问题）、接下来的规划、明确不想要的内容，整理成简报（含 reused）。`
+    : `用户想入门「${topic}」，并提供了背景：\n${context}\n\n先做库存检查，然后整理成简报（含 reused）；信息足够就不要追问。`,
 );
-log(`需求简报就绪：${brief.goal}`);
+log(`需求简报就绪：${brief.goal}${brief.reused !== "" ? `（库存命中：${brief.reused.slice(0, 80)}）` : ""}`);
 
 const focusList = brief.focuses.length > 0 ? brief.focuses : [topic];
 
@@ -116,7 +119,7 @@ const picks = await Promise.all(
         "本任务只检索与汇报，不要在工作区写任何文件。",
     }).ask<FocusPicks>(
       `你负责的聚焦点：${f}\n主题：${topic}\n需求简报：${JSON.stringify(brief)}\n\n` +
-        `任务：为该聚焦点找 2-3 篇最合适的候选文献（权威综述 / 奠基作 / 代表工作均可）。\n` +
+        `任务：为该聚焦点找 2-3 篇最合适的候选文献（权威综述 / 奠基作 / 代表工作均可）；简报 reused 里已有的知识可在 points 里呼应。\n` +
         `1. 先 Read .claude/rules/mcp-routing.md 了解本仓库检索路由。\n` +
         `2. 一次批量核验全部标识符（如 PubMed efetch 的 id 参数逗号分隔）；核验不过的换掉或舍弃。\n` +
         `3. 每篇写 1-2 句要点（points，基于摘要）并注明 usedFor（支撑该焦点的哪个论述）。`,
@@ -130,7 +133,8 @@ phase("撰写入门笔记并落盘");
 const writer = agent("笔记撰写人", {
   system:
     "你是给这位学生写第一课的导师：中文大白话，每一段都对着需求简报写，宁可讲透一个点，不做信息罗列。" +
-    "所有文献表述以检索结果为准，不添加检索结果之外的文献。",
+    "所有文献表述以检索结果为准，不添加检索结果之外的文献。" +
+    "若简报 reused 提到工作区已有相关笔记，在笔记开头注明'延伸自'并建议读者对照阅读。",
 });
 const draft = await writer.ask<SavedNote>(
   `主题：${topic}\n需求简报：${JSON.stringify(brief)}\n各焦点候选文献：${JSON.stringify(picks)}\n\n` +
@@ -168,7 +172,7 @@ if (critique.issues.length > 0) {
   );
   notePath = revised.path;
   nextOpts = revised.nextOptions;
-  log(`按读者反馈修订并更新了 ${notePath}。`);
+  log(`按新手读者的反馈修订了 ${critique.issues.length} 处。`);
 } else {
   log("复审未发现问题，笔记定稿。");
 }
@@ -180,7 +184,7 @@ try {
     primary: true,
   });
 } catch {
-  const repaired = await writer.ask<{ path: string }>(
+  const repaired = await writer.ask<SavedNote>(
     `文件 ${notePath} 未能发布（可能未写成功或路径有误）。请核对并重新写入，只返回最终确认的相对路径。`,
   );
   notePath = repaired.path;
@@ -208,9 +212,9 @@ return {
     `后续想深入哪个方向，从笔记末尾的点单清单里选即可。`,
   findings: optionFindings,
   verified: [
-    "需求经访谈确认（或由 context 参数提供）后才开始调研与撰写",
+    "需求经访谈确认（或由 context 参数提供），访谈含库存检查（已有知识可复用则标注）",
     "全部候选文献的标识符经批量核验可解析",
-    "笔记经零基础读者视角复审（发现问题已修订）",
+    "笔记经零基础新手视角的独立评审通读并修订",
     `笔记已落盘：${notePath}`,
   ],
   notCovered: [
