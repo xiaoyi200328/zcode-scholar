@@ -1,7 +1,7 @@
 /* zcode-workflow
-description: 统计分析动态工作流 v2（借鉴 CC analysis-execution 纪律）：访谈 → 数据盘点 →
-  统计方案+用户确认门(CONFIRM) → 生成/执行分离 → world.run 门控执行(≤2轮修复) → VERIFY 断言 →
-  双阶段审查(spec→quality) → 报告。
+description: 统计分析动态工作流 v2.1（借鉴 CC analysis-execution 纪律）：访谈 → 数据盘点 →
+  统计方案+CONFIRM 确认门 → 生成/执行分离（路径契约固定）→ world.run 门控执行(≤2轮修复) → VERIFY 真实文件复检 →
+  双阶段审查(spec→quality, ≤2轮修复重审) → 报告。
 args:
   context:
     type: string
@@ -16,9 +16,9 @@ args:
     description: 分析问题（如：A/B 两组的 X 是否有差异？关联/生存/预测均可）
     required: true
 */
-// research-analyze v2 — 借鉴 CC analysis-execution 纪律的统计分析工作流：
-// 访谈 → 数据盘点 → 方案生成+CONFIRM 确认门 → 生成/执行分离 → world.run 门控执行(≤2轮修复)
-// → VERIFY 断言(results.csv 存在+非空+关键列+图) → 双阶段审查(spec→quality, fail 修复重审) → 报告。
+// research-analyze v2.1 — 借鉴 CC analysis-execution 纪律的统计分析工作流：
+// 访谈 → 数据盘点 → 方案生成+CONFIRM 确认门 → 生成/执行分离（路径契约固定）→ world.run 门控执行(≤2轮修复)
+// → VERIFY 真实文件复检（修复后重新查文件，不用退出码冒充）→ 双阶段审查(spec→quality, ≤2轮修复重审) → 报告。
 // 红线：精确 p + 效应量 + 95%CI；技术重复不计入 n；Never silently modify statistical parameters。
 
 interface AnalysisBrief {
@@ -63,7 +63,7 @@ interface AnalysisPlan {
 interface ScriptPlan {
   /** R 脚本写入路径（只生成未执行） */
   scriptPath: string;
-  /** 输出目录 */
+  /** 输出根目录（不含 results 后缀） */
   outDir: string;
   /** 方法一句话摘要 */
   methodsSummary: string;
@@ -75,10 +75,17 @@ interface RunResult {
   stderr: string;
 }
 
+interface VerifyOutcome {
+  /** 校验是否通过 */
+  ok: boolean;
+  /** 校验说明（含失败细节） */
+  notes: string;
+}
+
 interface StageReview {
   /** spec 段：方法适配/前提假设/多重比较 */
   spec: { verdict: "pass" | "fail"; issues: string[] };
-  /** quality 段：结果与图一致/效应量与CI完整/p值精确 */
+  /** quality 段：结果与图一致/效应量与CI完整且自洽/p值精确 */
   quality: { verdict: "pass" | "fail"; issues: string[] };
 }
 
@@ -115,6 +122,20 @@ if (question === "") {
 const context = String(args.context ?? "").trim();
 const autoConfirm = context.includes("自动确认");
 
+async function checkOutputs(outDir: string): Promise<VerifyOutcome> {
+  try {
+    const csv = await files.read(outDir + "/results/results.csv");
+    const header = csv.split("\n")[0];
+    const figs = await files.glob(outDir + "/results/*.png");
+    if (csv.trim().length > 20 && header.includes("comparison") && header.includes("p") && figs.length > 0) {
+      return { ok: true, notes: `results.csv 表头合规、非空，图 ${figs.length} 张` };
+    }
+    return { ok: false, notes: `results.csv ${csv.trim().length} 字符，表头合规 ${header.includes("comparison") && header.includes("p")}，图 ${figs.length} 张` };
+  } catch {
+    return { ok: false, notes: `results.csv 未生成于 ${outDir}/results/` };
+  }
+}
+
 phase("分析访谈：弄清设计与问题");
 const intake = agent("需求访谈员", {
   system:
@@ -143,7 +164,8 @@ const analyst = agent("统计分析师", {
   system:
     "你是统计分析师：方法选择有依据（数据类型/分布/设计），报告精确 p 值、效应量与 95%CI；" +
     "技术重复先取均值再进统计；图上叠加散点。" +
-    "铁律：Never silently modify statistical parameters to suppress errors——修不了就明说，不靠改参数硬过。",
+    "铁律：Never silently modify statistical parameters to suppress errors——修不了就明说，不靠改参数硬过。" +
+    "效应量与 CI 必须同向自洽：effect 与 CI 必须描述同一方向的同一差值，CI 必须包含效应量本身。",
 });
 const plan = await analyst.ask<AnalysisPlan>(
   `分析问题：${brief.question}\n设计简报：${JSON.stringify(brief)}\n数据概况：${JSON.stringify(profile)}\n\n` +
@@ -153,9 +175,14 @@ const plan = await analyst.ask<AnalysisPlan>(
 
 phase("生成 R 脚本（只生成不执行）");
 const scriptPlan = await analyst.ask<ScriptPlan>(
-  `按已确认方案编写完整 R 脚本：统计检验 + 图（带散点的箱线图/相应图型，PNG+PDF 双写）+ results.csv 汇总表（表头必含 comparison/effect/ci/p/n 列）+ console 打印关键结果。\n` +
+  `按已确认方案编写完整 R 脚本：统计检验 + 图（带散点的箱线图/相应图型，PNG+PDF 双写）+ results.csv 汇总表 + console 打印关键结果。\n` +
     `${plan.userNotes !== "" ? `用户确认意见：${plan.userNotes}（必须体现在脚本里）。\n` : ""}` +
-    `脚本与输出目录：03_analysis/adhoc/{简短slug}/{scripts,results}/（不存在则创建；数据文件 ${data} 只读引用）。\n` +
+    `路径契约（严格执行，防止目录嵌套错乱）：\n` +
+    `- outDir = 03_analysis/adhoc/{简短slug}（不以 results 结尾）\n` +
+    `- 脚本 = outDir/scripts/analyze.R\n` +
+    `- 汇总表 = outDir/results/results.csv（表头必含 comparison,effect,ci,p,n）\n` +
+    `- 图 = outDir/results/ 下的 *.png 与 *.pdf\n` +
+    `- 数据文件 ${data} 只读引用\n` +
     `本步只把脚本写入工作区，绝不执行。返回 scriptPath 与 outDir。`,
 );
 log(`脚本已生成：${scriptPlan.scriptPath}（待执行）`);
@@ -191,24 +218,12 @@ if (run.exitCode !== 0) {
 }
 
 phase("VERIFY 校验与双阶段审查");
-let verifyNotes = "ok";
-let verifyOk = false;
-try {
-  const csv = await files.read(scriptPlan.outDir + "/results/results.csv");
-  const header = csv.split("\n")[0];
-  const figs = await files.glob(scriptPlan.outDir + "/results/*.png");
-  if (csv.trim().length > 20 && header.includes("comparison") && header.includes("p") && figs.length > 0) {
-    verifyOk = true;
-  } else {
-    verifyNotes = `results.csv ${csv.trim().length} 字符，表头合规: ${header.includes("comparison") && header.includes("p")}，图 ${figs.length} 张`;
-  }
-} catch {
-  verifyNotes = "results.csv 读取失败（可能未生成）";
-}
-if (!verifyOk) {
-  log(`VERIFY 未通过：${verifyNotes}，修复一轮`);
+let verify = await checkOutputs(scriptPlan.outDir);
+if (!verify.ok) {
+  log(`VERIFY 未通过：${verify.notes}，修复一轮`);
   await analyst.ask(
-    `VERIFY 校验未通过：${verifyNotes}。请检查脚本输出逻辑（results.csv 表头必须含 comparison/effect/ci/p/n，图必须输出 PNG），` +
+    `VERIFY 校验未通过：${verify.notes}。请对照路径契约检查脚本输出逻辑` +
+      `（results.csv 固定写 ${scriptPlan.outDir}/results/results.csv，图输出到 ${scriptPlan.outDir}/results/），` +
       `修复后写回原路径 ${scriptPlan.scriptPath}。`,
   );
   try {
@@ -216,33 +231,35 @@ if (!verifyOk) {
   } catch {
     run = await world.run("C:/Program Files/R/R-4.5.3/bin/x64/Rscript.exe", [scriptPlan.scriptPath], { timeoutMs: 600_000 });
   }
-  verifyOk = run.exitCode === 0;
+  verify = await checkOutputs(scriptPlan.outDir);
 }
+log(`VERIFY 结果：${verify.ok ? "通过" : "未通过"}（${verify.notes}）`);
 
 const reviewer = agent("统计审稿人", {
   system:
     "你是统计审稿人，执行双阶段审查（检查项不减）：\n" +
     "spec 段：方法与设计适配、前提假设声明、多重比较处理；\n" +
-    "quality 段：结果与图一致、效应量与 CI 完整、p 值精确、无选择性剔除。\n" +
-    "只依据报告与结果文件判断，不重跑分析、不修改文件。fail 必须给出具体位置与原因。",
+    "quality 段：结果与图一致、效应量与 CI 完整且自洽（effect 必须落在自己的 CI 内、方向一致）、p 值精确、无选择性剔除。\n" +
+    "只依据报告与结果文件判断，不修改文件；若怀疑数值错误，可用只读 R 命令独立抽查。fail 必须给出具体位置与原因。",
 });
 let review = await reviewer.ask<StageReview>(
   `先 Read ${scriptPlan.outDir}/results/ 下的汇总表与图，然后执行双阶段审查并按结构返回（spec 与 quality 各自 pass/fail + 问题清单）。` +
     `\n\n统计方案：${JSON.stringify(plan)}`,
 );
 let reviewRounds = 0;
-while ((review.spec.verdict === "fail" || review.quality.verdict === "fail") && reviewRounds < 1) {
+while ((review.spec.verdict === "fail" || review.quality.verdict === "fail") && reviewRounds < 2) {
   reviewRounds += 1;
-  log(`审查未通过（spec: ${review.spec.verdict}, quality: ${review.quality.verdict}），修复重审`);
+  log(`审查未通过（spec: ${review.spec.verdict}, quality: ${review.quality.verdict}），第 ${reviewRounds} 轮修复重审`);
   await analyst.ask(
     `双阶段审查未通过。spec 问题：${JSON.stringify(review.spec.issues)}\nquality 问题：${JSON.stringify(review.quality.issues)}\n` +
-      `请逐条修复（脚本或输出），写回原路径 ${scriptPlan.scriptPath}。`,
+      `请逐条修复（脚本或输出），写回原路径 ${scriptPlan.scriptPath}。修复后 effect 与 CI 必须自洽。`,
   );
   try {
     run = await world.run("Rscript", [scriptPlan.scriptPath], { timeoutMs: 600_000 });
   } catch {
     run = await world.run("C:/Program Files/R/R-4.5.3/bin/x64/Rscript.exe", [scriptPlan.scriptPath], { timeoutMs: 600_000 });
   }
+  verify = await checkOutputs(scriptPlan.outDir);
   review = await reviewer.ask<StageReview>(
     `修复后请重新执行双阶段审查（spec/quality 两段），对象：${scriptPlan.outDir}/results/。统计方案：${JSON.stringify(plan)}`,
   );
@@ -250,9 +267,9 @@ while ((review.spec.verdict === "fail" || review.quality.verdict === "fail") && 
 
 phase("统计报告落盘");
 const report = await analyst.ask<AnalysisReport>(
-  `审查状态：spec ${review.spec.verdict}${review.spec.issues.length > 0 ? `（遗留问题 ${JSON.stringify(review.spec.issues)}）` : ""}，quality ${review.quality.verdict}${review.quality.issues.length > 0 ? `（遗留问题 ${JSON.stringify(review.quality.issues)}）` : ""}。\n` +
-    `阅读 ${scriptPlan.outDir}/results/ 输出，撰写统计报告并写入 ${scriptPlan.outDir}/results/report.md：\n` +
-    `结构：分析问题 → 数据概况 → 方法与依据 → 结果（每项比较：效应量 + 95%CI + 精确 p + n，引用图表编号）→ 审查遗留问题（如有）→ 局限。\n` +
+  `审查状态：spec ${review.spec.verdict}${review.spec.issues.length > 0 ? `（遗留问题 ${JSON.stringify(review.spec.issues)}）` : ""}，quality ${review.quality.verdict}${review.quality.issues.length > 0 ? `（遗留问题 ${JSON.stringify(review.quality.issues)}）` : ""}。VERIFY：${verify.notes}。\n` +
+    `阅读 ${scriptPlan.outDir}/results/ 输出，撰写统计报告并写入 ${scriptPlan.outDir}/report.md：\n` +
+    `结构：分析问题 → 数据概况 → 方法与依据 → 结果（每项比较：效应量 + 95%CI + 精确 p + n；effect 与 CI 必须同向自洽，引用图表编号）→ 审查遗留问题（如有，显著标出）→ 局限。\n` +
     `console 输出摘要：\n${run.stdout.slice(0, 6000)}\n` +
     `返回 reportPath、figures、keyResults、caveats。`,
 );
@@ -277,14 +294,14 @@ const resultFindings: ResultFinding[] = report.keyResults.map((r) => ({
 return {
   conclusion:
     `「${brief.question}」的统计分析完成（方案确认门${autoConfirm ? "自动" : "已用户确认"}；脚本执行通过${attempts > 0 ? `，修复 ${attempts} 轮` : ""}；` +
-    `VERIFY ${verifyOk ? "通过" : "带问题通过"}；双阶段审查 spec ${review.spec.verdict}/quality ${review.quality.verdict}${reviewRounds > 0 ? `，修复重审 ${reviewRounds} 轮` : ""}）。` +
+    `VERIFY ${verify.ok ? "通过" : "未通过"}；双阶段审查 spec ${review.spec.verdict}/quality ${review.quality.verdict}${reviewRounds > 0 ? `，修复重审 ${reviewRounds} 轮` : ""}）。` +
     `报告在 ${report.reportPath}。`,
   findings: resultFindings,
   verified: [
     "统计方案经 CONFIRM 确认门（用户确认或自动确认）",
     "生成/执行分离：脚本生成后由 world.run 确定性执行，退出码 0",
-    `VERIFY 断言：results.csv 存在且表头合规、图已输出（${verifyNotes}）`,
-    `双阶段审查 spec ${review.spec.verdict}/quality ${review.quality.verdict}`,
+    `VERIFY 真实文件复检：${verify.notes}`,
+    `双阶段审查 spec ${review.spec.verdict}/quality ${review.quality.verdict}${reviewRounds > 0 ? `（修复重审 ${reviewRounds} 轮）` : ""}`,
     `全部产物自包含于 ${scriptPlan.outDir}/`,
   ],
   notCovered: [
