@@ -141,10 +141,15 @@ const proposals = await Promise.all(
         "你是实验设计师，负责一个方案取向。设计必须完整覆盖六要素：\n" +
         "①变量定义（自变量含梯度/因变量含检测方法/混杂逐一列控制手段）②对照体系（阴性/阳性/同型/参照，每组实验必答'对照是什么'）\n" +
         "③随机化与盲法 ④生物学重复 n≥3 且与技术重复严格区分（技术重复不得计入 n）⑤样本量依据（power analysis 或文献，写明计算过程）⑥批次控制。\n" +
-        "关键结论必须有正交验证策略（两条独立手段）；体系未建立先列 pilot。本任务只设计不落盘。",
+        "关键结论必须有正交验证策略（两条独立手段）；体系未建立先列 pilot。本任务只设计不落盘。\n" +
+        "技能后端（软路由）：若工作区存在 .agents/skills/experimental-design/SKILL.md 与 .agents/skills/statistical-power/SKILL.md，" +
+        "必须先 Read 遵循——experimental-design 提供随机化/区组/析因 DOE/伪重复判定的方法论与脚本，" +
+        "statistical-power 提供样本量计算规范（SESOI 效应量选择、pilot 估计须缩水、敏感性分析）及其 Python 脚本（scripts/power.py）可直接调用。" +
+        "缺失时按上述六要素自行设计。",
     }).ask<DesignProposal>(
       `你的方案取向：${angle}\n科学问题：${topic}\n假说：${idea.hypothesis}\n设计简报：${JSON.stringify(brief)}\n\n` +
-        `按类型定义产出完整方案（六要素一个不能少），方案名用「方案${"ABC"[i]}：${angle.slice(0, 12)}」式命名。`,
+        `按类型定义产出完整方案（六要素一个不能少），方案名用「方案${"ABC"[i]}：${angle.slice(0, 12)}」式命名。\n` +
+        `样本量依据必须给出计算过程（效应量来源、α、power、所需 n），不得给出与计算矛盾的数字。`,
     );
     report({ proposal: p.name, hasPilot: p.pilots !== "" });
     return p;

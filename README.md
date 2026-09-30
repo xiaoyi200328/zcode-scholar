@@ -48,10 +48,20 @@ zcode-scholar/
 │   ├── commands/research.md      # /research 五模式命令（调研/设计/分析/解读/写作）
 │   ├── skills/research-assist/   # 命令的路由大脑 + 5 个阶段 playbook
 │   └── workflows/                # 动态工作流（.dwf.ts，随仓库分发）
+├── .agents/skills/               # 内置技能后端（7 个，选自 K-Dense-AI/scientific-agent-skills，MIT）
+│   ├── statistical-power         # 样本量/功效分析（SESOI 效应量原则 + 敏感性分析）
+│   ├── experimental-design       # 随机化/区组/析因 DOE/伪重复判定
+│   ├── statistical-analysis      # 检验选择指南/假设诊断/效应量规范/报告标准
+│   ├── statsmodels               # GLM/线性模型/时间序列方法参考
+│   ├── scikit-survival           # 生存分析方法参考（Cox/竞争风险）
+│   ├── paper-lookup              # 10 大学术数据库检索
+│   └── citation-management       # 引用管理与核验
 ├── .claude/rules/mcp-routing.md  # 检索路由（research-survey 运行时依赖）
 ├── AGENTS.md                     # ZCode 工作区指令
 └── .zcodeignore                  # ZCode 排除规则（同步自 .gitignore）
 ```
+
+**技能后端说明**：工作流内建**软路由**——技能存在时自动加载其方法论（如 research-design 的样本量计算走 `statistical-power` 的 SESOI 规范），缺失时按工作流内置纪律执行，自包含不依赖外部安装。技能来自 [K-Dense-AI/scientific-agent-skills](https://github.com/K-Dense-AI/scientific-agent-skills)（MIT），归属声明见 `.agents/skills/LICENSE-K-Dense.md`。
 
 ## 与 auto-research（Claude Scholar）的关系
 

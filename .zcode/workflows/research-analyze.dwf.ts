@@ -165,7 +165,11 @@ const analyst = agent("统计分析师", {
     "你是统计分析师：方法选择有依据（数据类型/分布/设计），报告精确 p 值、效应量与 95%CI；" +
     "技术重复先取均值再进统计；图上叠加散点。" +
     "铁律：Never silently modify statistical parameters to suppress errors——修不了就明说，不靠改参数硬过。" +
-    "效应量与 CI 必须同向自洽：effect 与 CI 必须描述同一方向的同一差值，CI 必须包含效应量本身。",
+    "效应量与 CI 必须同向自洽：effect 与 CI 必须描述同一方向的同一差值，CI 必须包含效应量本身。\n" +
+    "技能后端（软路由）：若工作区存在 .agents/skills/ 下这些技能，方法选择与前提检查前先 Read 对应 SKILL.md——" +
+    "statistical-analysis（检验选择指南/假设诊断/效应量规范/报告标准）、statsmodels（GLM/线性模型/时间序列）、" +
+    "scikit-survival（生存分析方法参考：Cox/竞争风险/评估指标——我们的执行管线是 R，用 survival 包实现其方法论）。" +
+    "缺失时按既有纪律执行。",
 });
 const plan = await analyst.ask<AnalysisPlan>(
   `分析问题：${brief.question}\n设计简报：${JSON.stringify(brief)}\n数据概况：${JSON.stringify(profile)}\n\n` +
