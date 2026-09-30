@@ -23,7 +23,8 @@
 
 ## 输出与命名约定
 
+- **课题状态源**：`RESEARCH-STATE.md`（每课题一份）是课题唯一状态文档，**只由 `/research` 编排器维护**；工作流不读写它
 - 入门笔记 → `Research/{课题}/Knowledge/`（无匹配课题则新建；无 vault 则根目录 `Knowledge/`）
-- 论文初稿 → `Writing/manuscript/`；统计产物 → `03_analysis/adhoc/{slug}/`（脚本/图/报告自包含）
+- 论文初稿 → `Writing/manuscript/`；标书 → `Writing/grant/`；审稿回复 → `Writing/rebuttal/`；统计产物 → `03_analysis/adhoc/{slug}/`（脚本/图/报告自包含）
 - 运行时产物（`.zcode/plans|workflow-drafts|workflow-runs`）已由 `.zcode/.gitignore` 排除，不入库
 - Git Conventional Commits；文献标识符（DOI/PMID）必须核验后才可引用

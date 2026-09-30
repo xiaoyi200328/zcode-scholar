@@ -31,6 +31,23 @@
 
 **参数约定**：每个工作流都有 `context` 类参数——把你所处阶段、关注重点、规划写清楚可直接开工；不写则工作流会先访谈你再动工。在 `context` 中写「自动确认」可跳过中途的确认门（大纲/方案/选择），全自动跑完。
 
+## 编排器与课题状态（`/research` 无参数）
+
+科研是循环：假说 → 设计实验 → 分析 → 解读 → 修正假说 → 积累后写论文/申标书。**`/research` 不带参数时进入编排模式**，把 8 个工作流串成这条循环：
+
+```bash
+/research          # 编排模式：对账 + 仪表盘 + 推荐下一步
+```
+
+编排模式做四件事：
+
+1. **对账自愈**：扫描标准产物位置（Experiments/、03_analysis/、Results/Reports/、Writing/），把未记录的产物补录进状态文档
+2. **仪表盘**：假说状态 / 设计数 / 最近分析决策 / 素材池 / Next Actions
+3. **推荐下一步**：无假说→design；有数据未分析→analyze；有报告未解读→interpret；决策=可发表→figures→write；需申报→grant；收到审稿意见→rebuttal
+4. **发射与串联**：你确认后，从状态文档**自动填充参数**启动对应工作流（如 interpret 自动带上最近的 analyze 报告 + 假说）——运行完成后状态文档自动更新
+
+状态文档 `RESEARCH-STATE.md`（每课题一份，vault 检测自动定位）是课题唯一状态源：假说（ACTIVE/REVISED/FALSIFIED）、设计与分析记录（冻结枚举 DONE/DONE_WITH_CONCERNS/BLOCKED/VOIDED）、素材池、下一步。借鉴 CC claude-scholar 的 Hub.md 单文件状态源与 orchestrator 薄上下文纪律；由 `/research` 单一写手维护，工作流不写状态。
+
 ## 快慢模式
 
 子代理推理档跟随会话设置（默认 max，质量优先，约慢 3 倍）。**快模式**：运行时指定子代理用 low 推理档（`subagent_model: <模型>$low`），检索/核验/统计执行不受影响，撰写质量略降。
