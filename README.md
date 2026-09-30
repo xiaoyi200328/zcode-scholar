@@ -19,17 +19,32 @@
 
 ## 用法
 
+**方式一：斜杠命令（推荐，每个工作流一个入口）**
+
 ```bash
-# 1. clone 本仓库，用 ZCode 打开
-# 2. 对 agent 说（工作流面板也可直接选）：
-运行 research-survey 工作流，主题是「单细胞测序解析肿瘤微环境」
-运行 research-design 工作流，验证蛋白X磷酸化影响Y通路
-运行 research-analyze 工作流，数据是 data/qpcr.csv，问题是 A/B 两组差异
-运行 research-interpret 工作流，报告是 03_analysis/.../report.md，假说是…
-运行 research-write 工作流，素材是 Results/Reports/ 下的解读报告
+/research-survey 单细胞测序解析肿瘤微环境          # 领域入门笔记（~10 分钟）
+/research-design 验证蛋白X磷酸化影响Y通路          # 实验设计+四维评审（~15 分钟）
+/research-analyze data/qpcr.csv A/B两组是否有差异  # 统计分析（~12 分钟）
+/research-interpret 03_analysis/.../report.md     # 结果解读+决策矩阵（~12 分钟）
+/research-figures data/ 图1：两组比较箱线图        # 投稿级图表（~15 分钟）
+/research-write 肿瘤免疫治疗 data/素材;figs/       # IMRAD 初稿（~20-30 分钟）
+/research-grant 多组学耐药标志物 青年              # NSFC 标书（~30-40 分钟）
+/research-rebuttal 审稿意见.txt 稿件.md           # 审稿回复（~10-15 分钟）
 ```
 
-**参数约定**：每个工作流都有 `context` 类参数——把你所处阶段、关注重点、规划写清楚可直接开工；不写则工作流会先访谈你再动工。在 `context` 中写「自动确认」可跳过中途的确认门（大纲/方案/选择），全自动跑完。
+**方式二：编排模式（不确定下一步时用）**
+
+```bash
+/research          # 无参数：对账 + 仪表盘 + 推荐下一步，确认后自动填充参数发射
+```
+
+**方式三：自然语言**（工作流面板也可直接选）
+
+```bash
+运行 research-survey 工作流，主题是「单细胞测序解析肿瘤微环境」
+```
+
+**参数约定**：每个命令的参数提示见斜杠菜单；`context` 类参数写清阶段/重点/规划可直接开工，含「自动确认」跳过中途确认门，含「链式/自动连跑」按推荐链连续发射。耗时数据按 low 推理档，默认档约慢 3 倍。
 
 ## 编排器与课题状态（`/research` 无参数）
 

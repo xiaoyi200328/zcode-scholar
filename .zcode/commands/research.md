@@ -141,7 +141,7 @@ updated: {YYYY-MM-DD}
 - **枚举第一天冻结**：运行状态 `DONE | DONE_WITH_CONCERNS | BLOCKED | VOIDED`；假说 `ACTIVE | REVISED | FALSIFIED`；决策 = interpret 六情形。不要发明新状态词（真实 CC 项目曾自由演化出十几种状态导致机器难解析）
 - **单元格一句话**：能从产物目录推导的（脚本路径/产物清单）不进表；细节留在产物文档
 - **口径变更用 blockquote overlay**：表格上方加引用块声明"历史行仅作审计"，不改历史行
-- **单一写手**：本命令是 RESEARCH-STATE.md 的唯一写手；工作流不写状态
+- **单一写手**：`/research` 与 `/research-*` 命令家族是 RESEARCH-STATE.md 的唯一写手；工作流不写状态
 
 ## 边界（不属于本命令）
 
