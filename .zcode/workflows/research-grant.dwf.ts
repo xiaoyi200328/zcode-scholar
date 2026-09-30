@@ -240,7 +240,7 @@ const drafts = await Promise.all(
 phase("组装、anti-AI 评分门与引用核查");
 const assembled = await writer.ask<SavedGrant>(
   `六部分草稿：${JSON.stringify(drafts)}\n项目名称：${outlineConfirmed.title}\n\n` +
-    `组装为完整标书并直接写入工作区（Title + 各部分；文末统一参考文献列表含标识符；文末附 todos）。${fileRule}\n` +
+    `组装为完整标书并直接写入工作区。结构顺序：项目名称 → **项目摘要（400 字，严格配比：背景 80 → 问题 60 → 假说 60 → 方法 120 → 预期成果 80；摘要缺失 = 函评一票硬伤，绝不可漏）** → 六部分正文 → 文末统一参考文献列表（含标识符）→ 文末附 todos。${fileRule}\n` +
     `返回实际路径与 todos（[需补充]/[待补文献] 清单）。`,
 );
 log(`标书已写入 ${assembled.path}`);
