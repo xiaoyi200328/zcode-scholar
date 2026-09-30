@@ -11,6 +11,7 @@
 | `research-analyze` | /run-analysis + analysis-execution（CONFIRM 门/生成执行分离/双阶段审查）+ sp-verification | R 脚本 + 图表 + 统计报告（效应量/CI/精确 p），落盘 03_analysis/ | ≈ 12 分钟 |
 | `research-interpret` | results-report（决策对象）+ analysis-reflection（决策矩阵） | 结果解读报告（统计复核 + 机制链 + 文献对照四态 + 决策强制选一），落盘 Results/Reports/ | ≈ 12 分钟 |
 | `research-write` | /writing（两段式+大纲确认门）+ writing-anti-ai（50 分制）+ paper-self-review（三值 verdict） | IMRAD 初稿（claim-evidence 大纲 → 并行分节 → 质量门 → 终审），落盘 Writing/manuscript/ | ≈ 20-30 分钟 |
+| `research-grant` | NSFC Grant Pipeline（/research-init→/critical-thinking→/writing 三阶段） | NSFC 标书初稿（构思+文献 → 四维批判评审+方向门 → 大纲确认门 → 六部分并行起草 → 函评模拟终审），落盘 Writing/grant/ | ≈ 30-40 分钟 |
 
 **借鉴 CC 的质量门一览**：需求访谈先行 / 库存检查 / CONFIRM 用户确认门（大纲、统计方案、方案选择）/ 生成与执行分离（world.run 门控）/ VERIFY 断言 / 双阶段审查（spec→quality）/ anti-AI 50 分制评分 / 引用幻觉防线 / 三值 verdict 终审。
 
