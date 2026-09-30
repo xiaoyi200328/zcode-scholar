@@ -67,11 +67,11 @@ interface FigureQC {
   figureId: string;
   /** 是否成功以视觉方式读取了 PNG（false 时仅完成程序化检查） */
   visionRead: boolean;
-  /** 逐项 QC 结果 */
+  /** 逐项 QC 结果（note 每条 ≤100 字符，只写判定依据要点，防止响应超长被截断） */
   checks: { item: string; pass: boolean; note: string }[];
   /** QC 裁定 */
   verdict: "pass" | "fail" | "manual-review-needed";
-  /** 未通过维度的定向修复提示 */
+  /** 未通过维度的定向修复提示（每条 ≤80 字符） */
   fixHints: string[];
 }
 
@@ -206,7 +206,7 @@ const qcs: FigureQC[] = await Promise.all(
         "不修改任何文件。",
     }).ask<FigureQC>(
       `图 ${s.figureId}：PNG=${s.outputPng}（脚本执行 ${exec && exec.run.exitCode === 0 ? "成功" : "失败"}）\n` +
-        `QC 硬规则清单：${JSON.stringify(recipe?.qcChecklist ?? [])}\n返回逐项检查与裁定；2 轮修复仍不过应裁 manual-review-needed。`,
+        `QC 硬规则清单：${JSON.stringify(recipe?.qcChecklist ?? [])}\n返回逐项检查与裁定。响应必须精简：note 每条 ≤100 字符只写判定依据要点，fixHints 每条 ≤80 字符；详细测量过程不要写进响应。2 轮修复仍不过应裁 manual-review-needed。`,
     );
     report({ figureId: qc.figureId, verdict: qc.verdict });
     return qc;
@@ -233,7 +233,7 @@ for (let i = 0; i < qcs.length; i += 1) {
       await world.run("py", [s.scriptPath], { timeoutMs: 300_000 });
     }
     const reQc = await agent(`视觉QC员-${s.figureId}-复检${rounds}`, {
-      system: "你是视觉 QC 员：修复后按同一 QC 清单复检，只读不修改。",
+      system: "你是视觉 QC 员：修复后按同一 QC 清单复检，只读不修改。响应精简：note 每条 ≤100 字符。",
     }).ask<FigureQC>(
       `重新 Read ${s.outputPng}，按清单复检。上一轮问题：${JSON.stringify(qc.checks.filter((c) => !c.pass))}`,
     );
